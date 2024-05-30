@@ -3,11 +3,36 @@
      establecido por el usuario determine un rendimiento promedio"""
 
 
+import datetime
+import mysql.connector
+from mysql.connector import Error
+
+
+try:
+    conexion=mysql.connector.connect(
+        host="localhost",
+        port=3306,
+        user="root",
+        password="root",
+        db="huerta"
+    )
+
+    if conexion.is_connected:
+        print("Conexion exitosa")
+        cursor=conexion.cursor(buffered=True)
+        cursor.execute("SELECT database();") #da el nombre de la BD
+        registro=cursor.fetchone()
+        print("conectado a la BD:", registro)
+
+except Error as ex:
+    print("Error de conexion", ex)
+
+
+
 def principal():
         """metodo inicio programa
         Args: eleccion(int): Menú 
         """
-        
         temporada=int(input("Por favor seleccione la temporada de la hortaliza a trabajar : \n"
         "1. PRIMAVERA- VERANO\n"
         "2. OTOÑO- INVIERNO\n"))
@@ -27,18 +52,37 @@ class horticultura():
         self.fechaCosecha=0
         self.rendimiento=0
         self.variedad=0
-        self.__listaPV= {1:"Albahaca", 2:"Apio", 3:"Brocoli", 4:"Cebolla", 5:"Espinaca", 6:"Oregano", 7:"Pepino",8:"Sandía"}
-        self.__listaOI={1:"Acelga",2:"Arveja",3:"Cebolla",4:"Coliflor",5:"Puerro",6:"Radicheta",7:"Ajo",8:"Haba"}
+        self.__lista= []
+        self.__listaPV= {}
+        self.__listaOI={}
+        self.idVariedad=0
 
 
     def setVariedad(self,cambioVar):
         self.variedad=cambioVar
 
+    def setIdVariedad(self, id):
+        self.idVariedad=id
+
     def getPrimaveraVerano(self):
-        return self.__listaPV
+        cursor.execute("SELECT idvariedad,nombreVariedad FROM variedad WHERE estacion=1")
+        conexion.commit
+
+        for x in cursor:
+            print(x)
+        return ""
+       
 
     def getOtonoInvierno(self):
-        return self.__listaOI
+        cursor.execute("SELECT idvariedad,nombreVariedad FROM variedad WHERE estacion=2")
+        conexion.commit
+
+        for x in cursor:
+            print(x)
+        
+        return ""
+    
+    
     def getTemporada(self):
         return self.temporada
        
@@ -49,12 +93,29 @@ class horticultura():
             """
         if param==1:
             valor=int(input(f"Seleccione la variedad a trabajar: {self.getPrimaveraVerano()}\n"))
-            self.variedad=self.__listaPV.get(valor)
+            consulta1="SELECT nombreVariedad FROM variedad WHERE idvariedad="+str(valor)
+            cursor.execute(consulta1)
+            conexion.commit()
+            
+            for i in cursor:
+                self.variedad=i
+            
+            self.setIdVariedad(valor)
+         
             print("------------------")
+            
 
         elif param==2:
             valor=int(input(f"Seleccione la variedad a trabajar: {self.getOtonoInvierno()}\n"))
-            self.variedad=self.__listaOI.get(valor)
+            consulta1="SELECT nombreVariedad FROM variedad WHERE idvariedad=" +str(valor)
+            cursor.execute(consulta1)
+            conexion.commit()
+            
+            for i in cursor:
+        
+                self.variedad=i
+            
+        
             print("------------------")
 
     
@@ -64,31 +125,50 @@ class horticultura():
         """
         while True:
             print("------------------")
-            labor=int(input("Seleccione la labor a realizar:\n"
-            "1. Siembra\n"
-            "2. Abono\n"
-            "3. Raleo\n"
-            "4. Riego\n"
-            "5. Cosecha\n"
-            "6. Volver al menú anterior\n"))
-            print("---------------------")
+            print("LABORES")
+        
+            cursor.execute("SELECT idActividad, actividades FROM actividad")
+            conexion.commit()
+            for i in cursor:
+                print(i)
+            labor=int(input("Seleccione la labor a realizar, o presione 7 para volver al menú anterior:\n"))
+           
             
             if labor==1:
-                print("Detalle de siembra")
+                print("Preparación del Suelo")
+                dia=int(input("Seleccione dia: "))
+                mes=int(input("Seleccione mes: "))
+                agno=int(input("Seleccione año: "))
+                print("Seleccione el lote a trabajar:")
+                print("------------------")
+                cursor.execute("SELECT idParcela, parcela FROM  parcela")
+                conexion.commit()
+                for x in cursor:
+                    print(x)
+                lote=int(input("Seleccione lote: "))
+                fecha=datetime.date(agno, mes, mes)
+                print(self.idVariedad)
+                sql=("INSERT INTO labores(variedad, actividad, fecha, parcela) VALUES (%s,%s,%s,%s)")
+                datos=(self.idVariedad, labor,fecha,lote)
+                cursor.execute(sql,datos)
+                conexion.commit()
+
                 print("------------------")
             if labor==2:
-                print("Detalle de abono")
+                print("Siembra")
                 print("------------------")
             if labor==3:
-                print("Detalle de raleo")
+                print("Raleo")
                 print("------------------")
             if labor ==4:
-                print("Detalle riego")
+                print("Abono")
                 print("------------------")
             if labor ==5:
-                print("Detalle cosecha")
+                print("Cosecha")
                 print("------------------")
-            if labor==6:   
+            if labor==6:
+                print("Riego")
+            if labor==7:   
                 self.menuDecision()                 
                 #self.menu2()
                 break
@@ -137,11 +217,16 @@ class horticultura():
                 print("     Variedades Primavera-Verano", self.getPrimaveraVerano())
                 print("------------------")
             elif opcionMenu2==5:
+               
                self.variedadHortaliza(principal())
+               
 
             elif opcionMenu2==6:
                 
                 print("     Gracias por utilizar la aplicación!")
+                cursor.close()
+                conexion.close()
+                print("Se cerró la conexión con la Base de Datos")
                 break
                 
             
@@ -154,7 +239,6 @@ huerta1=horticultura(principal())
 huerta1.variedadHortaliza(huerta1.getTemporada())
 
 huerta1.menu2()
-
 
 
 
